@@ -1091,6 +1091,12 @@ jl_generic_fptr_t jl_generate_fptr(jl_method_instance_t *li, void *_F, size_t wo
         // and return its fptr instead
         if (!unspec)
             unspec = jl_get_unspecialized(li); // get-or-create the unspecialized version to cache the result
+        fptr.fptr = unspec->fptr;
+        fptr.jlcall_api = unspec->jlcall_api;
+        if (fptr.fptr && fptr.jlcall_api) {
+            JL_UNLOCK(&codegen_lock);
+            return fptr;
+        }
         jl_code_info_t *src = unspec->def->isstaged ? jl_code_for_staged(unspec) : unspec->def->source;
         jl_llvm_functions_t decls = unspec->functionObjectsDecls;
         if (unspec == li) {
