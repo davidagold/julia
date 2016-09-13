@@ -163,6 +163,26 @@ end  # IteratorsMD
 
 using .IteratorsMD
 
+## Support for SubArray with CartesianIndex
+function _indices_sub{N}(S::SubArray, pinds, ::CartesianIndex{N}, I...)
+    @_inline_meta
+    _indices_sub(S, IteratorsMD.split(pinds, Val{N})[2], I...)
+end
+function _indices_sub{N}(S::SubArray, pinds, i1::AbstractArray{CartesianIndex{N}}, I...)
+    @_inline_meta
+    (unsafe_indices(i1)..., _indices_sub(S, IteratorsMD.split(pinds, Val{N})[2], I...)...)
+end
+function compute_stride1{N}(s, inds, I::Tuple{CartesianIndex{N}, Vararg{Any}})
+    @_inline_meta
+    h, t = IteratorsMD.split(inds, Val{N})
+    compute_stride1(s*prod(map(unsafe_length, h)), t, tail(I))
+end
+to_index(c::CartesianIndex) = c
+_index_count{N}(n, i::CartesianIndex{N}, I...) =
+    _index_count((n..., fill_to_length((), nothing, Val{N})...), I...)
+_index_count{N}(n, i::AbstractArray{CartesianIndex{N}}, I...) =
+    _index_count((n..., fill_to_length((), nothing, Val{N})...), I...)
+
 ## Bounds-checking with CartesianIndex
 @inline checkbounds_indices(::Type{Bool}, ::Tuple{}, I::Tuple{CartesianIndex,Vararg{Any}}) =
     checkbounds_indices(Bool, (), (I[1].I..., tail(I)...))
@@ -228,8 +248,10 @@ index_shape(A::AbstractArray,  I::Colon)    = (linearindices(A),)
     inds1, indstail = IteratorsMD.split(inds, Val{1})
     (inds1..., index_shape_dim(indstail, i, I...)...)
 end
-@inline index_shape_dim(inds,  ::Real...)             = ()
-@inline index_shape_dim(inds,  ::Real, I...)          = index_shape_dim(safe_tail(inds), I...)
+@inline index_shape_dim(inds,    ::Real...)             = ()
+@inline index_shape_dim(inds,    ::Real, I...)          = index_shape_dim(safe_tail(inds), I...)
+@inline index_shape_dim{N}(inds, ::CartesianIndex{N}, I...) =
+    index_shape_dim(IteratorsMD.split(inds, Val{N})[2], I...)
 @inline index_shape_dim(inds, i::AbstractArray, I...) =
     (indices(i)..., index_shape_dim(safe_tail(inds), I...)...)
 @inline index_shape_dim(inds, i::AbstractArray{Bool}, I...) =

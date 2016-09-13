@@ -1271,6 +1271,17 @@ for a in (copy(reshape(1:60, 3, 4, 5)),
     @test a[CartesianIndex((1,)), [1,2], :] == a[1,[1,2],:]
     @test a[CartesianIndex((2,)), 3:4, :] == a[2,3:4,:]
     @test a[[CartesianIndex(1,3),CartesianIndex(2,4)],3:3] == reshape([a[1,3,3]; a[2,4,3]], 2, 1)
+
+    @test a[[CartesianIndex()], :, :, :] == view(a, [CartesianIndex()], :, :, :) == reshape(a, 1, 3, 4, 5)
+    @test a[:, [CartesianIndex()], :, :] == view(a, :, [CartesianIndex()], :, :) == reshape(a, 3, 1, 4, 5)
+    @test a[:, :, [CartesianIndex()], :] == view(a, :, :, [CartesianIndex()], :) == reshape(a, 3, 4, 1, 5)
+    @test a[:, :, :, [CartesianIndex()]] == view(a, :, :, :, [CartesianIndex()]) == reshape(a, 3, 4, 5, 1)
+    @test a[[CartesianIndex()], :, :] == view(a, [CartesianIndex()], :, :) == reshape(a, 1, 3, 20)
+    @test a[:, [CartesianIndex()], :] == view(a, :, [CartesianIndex()], :) == reshape(a, 3, 1, 20)
+    @test a[:, :, [CartesianIndex()]] == view(a, :, :, [CartesianIndex()]) == reshape(a, 3, 20, 1)
+    @test a[[CartesianIndex()], :] == view(a, [CartesianIndex()], :) == reshape(a, 1, 60)
+    @test a[:, [CartesianIndex()]] == view(a, :, [CartesianIndex()]) == reshape(a, 60, 1)
+
     @test_throws BoundsError a[[CartesianIndex(1,5),CartesianIndex(2,4)],3:3]
     @test_throws BoundsError a[1:4, [CartesianIndex(1,3),CartesianIndex(2,4)]]
 end
